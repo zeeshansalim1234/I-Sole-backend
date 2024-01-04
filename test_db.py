@@ -1,55 +1,11 @@
 import firebase_admin
 from firebase_admin import auth, credentials, firestore, initialize_app
-from flask import Flask, Blueprint, request, jsonify, render_template, redirect, url_for
-from flask_cors import CORS
-import json
-import pyrebase
-
-app = Flask(__name__)
-CORS(app,resources={r"/*":{"origins":"*"}})
+from datetime import datetime
 
 cred = credentials.Certificate("i-sole-111bc-firebase-adminsdk-f1xl8-c99396fd2b.json")
 firebase_admin.initialize_app(cred)
 
 db=firestore.client()
-
-@app.route('/initialize_counter', methods=['POST'])
-def initialize_counter():
-    data = request.json
-    username = data['username']
-    initialize_user_thread_counter(username)
-    return jsonify({"success": True})
-
-@app.route('/start_new_thread', methods=['POST'])
-def start_thread():
-    data = request.json
-    username = data['username']
-    message = data['message']
-    start_new_thread_with_message(username, message)
-    return jsonify({"success": True})
-
-@app.route('/add_message', methods=['POST'])
-def add_message():
-    data = request.json
-    username = data['username']
-    index = data['index']
-    message = data['message']
-    add_message_to_conversation(username, index, message)
-    return jsonify({"success": True})
-
-@app.route('/get_all_conversations/<username>', methods=['GET'])
-def get_all(username):
-    conversations = get_all_conversations(username)
-    return jsonify(conversations)
-
-@app.route('/get_one_conversation/<username>/<int:index>', methods=['GET'])
-def get_one(username, index):
-    conversation = get_one_conversation(username, index)
-    if conversation is not None:
-        return jsonify(conversation)
-    else:
-        return jsonify({"error": "Conversation not found"}), 404
-
 
 def initialize_user_thread_counter(username): # need to call at creation of each account
     # Reference to the user's thread counter document
@@ -90,6 +46,8 @@ def start_new_thread_with_message(username, message):
 
     doc_ref = db.collection('users').document(username).collection('feedback').document(new_thread)
     doc_ref.set({'messages': [message_data]})
+
+
 
 
 def add_message_to_conversation(username, index, message):
@@ -133,8 +91,6 @@ def get_all_conversations(username):
             # Append the 0th message to the array
             first_messages.append(thread_data['messages'][0])
 
-    print(first_messages)
-
     return first_messages
 
 def get_one_conversation(username, index):
@@ -155,5 +111,14 @@ def get_one_conversation(username, index):
     # Return None or an empty array if the document does not exist
     return None
 
-if __name__ == '__main__':
-    app.run(debug=True)
+
+# initialize_user_thread_counter('Zeeshan')
+
+start_new_thread_with_message('Zeeshan', 'wassup')
+
+
+add_message_to_conversation("Zeeshan", 1, "modzilla")
+
+print(get_all_conversations("Zeeshan"))
+# print()
+# print(get_one_conversation("Zeeshan", 2))
