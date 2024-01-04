@@ -115,7 +115,7 @@ def add_message_to_conversation(username, index, message):
     doc_ref.set({'messages': firestore.ArrayUnion([message_data])}, merge=True)
 
 def get_all_conversations(username):
-    # Array to hold the 0th message from each thread
+    # Array to hold the first message and count of each thread
     first_messages = []
 
     # Reference to the user's feedback collection
@@ -130,10 +130,17 @@ def get_all_conversations(username):
 
         # Check if 'messages' field exists and has at least one message
         if 'messages' in thread_data and thread_data['messages']:
-            # Append the 0th message to the array
-            first_messages.append(thread_data['messages'][0])
+            # Get the count of messages in the thread
+            message_count = len(thread_data['messages'])
 
-    print(first_messages)
+            # Create a new dict with the 0th message and the count
+            first_message_with_count = {
+                **thread_data['messages'][0],
+                'count': message_count
+            }
+
+            # Append this new dict to the array
+            first_messages.append(first_message_with_count)
 
     return first_messages
 
