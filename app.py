@@ -43,8 +43,8 @@ def signup():
 
          # Check if the role is 'Patient' and generate a unique patientID
         if role == 'Patient':
-            print("asdads")
             patient_id = generate_unique_patient_id()
+            update_id_map(patient_id, username)
 
         # Create a reference to the Firestore document
         user_ref = db.collection('users').document(username)
@@ -237,6 +237,25 @@ def check_patient_id_exists(patient_id):
     users_ref = db.collection('users')
     query = users_ref.where('patientID', '==', patient_id).limit(1).stream()
     return any(query)
+
+def update_id_map(patient_id, username):
+    """
+    Update the idmap document in the system_data collection with the patient ID and username.
+    """
+    idmap_ref = db.collection('system_data').document('idmap')
+    # Use a transaction to ensure atomicity
+    @firestore.transactional
+    def update_in_transaction(transaction, ref, pid, uname):
+        snapshot = ref.get(transaction=transaction)
+        if snapshot.exists:
+            current_map = snapshot.to_dict()
+            current_map[pid] = uname
+        else:
+            current_map = {pid: uname}
+        transaction.set(ref, current_map)
+    
+    transaction = db.transaction()
+    update_in_transaction(transaction, idmap_ref, patient_id, username)
 
 @firestore.transactional
 def increment_counter(transaction, counter_ref):
