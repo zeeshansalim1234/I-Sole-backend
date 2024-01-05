@@ -9,6 +9,7 @@ import os
 from twilio.rest import Client
 from twilio.twiml.voice_response import VoiceResponse, Pause
 import urllib.parse
+import random
 
 app = Flask(__name__)
 CORS(app,resources={r"/*":{"origins":"*"}})
@@ -27,6 +28,41 @@ def initialize_counter():
     username = data['username']
     initialize_user_thread_counter(username)
     return jsonify({"success": True})
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    try:
+        # Parse the incoming data from the signup form
+        signup_data = request.json
+        username = signup_data['username']
+        email = signup_data['email']
+        full_name = signup_data['fullName']
+        role = signup_data['role']
+        password = signup_data['password']  # Be careful with handling passwords
+        patient_id = signup_data.get('patientID', None)  # Optional field
+
+         # Check if the role is 'Patient' and generate a unique patientID
+        if role == 'Patient':
+            print("asdads")
+            patient_id = generate_unique_patient_id()
+
+        # Create a reference to the Firestore document
+        user_ref = db.collection('users').document(username)
+
+        # Create a new document with the provided data
+        user_ref.set({
+            'email': email,
+            'fullName': full_name,
+            'role': role,
+            'password': password,  # Consider hashing the password
+            'patientID': patient_id
+        })
+
+        return jsonify({"success": True, "message": "User created successfully"}), 201
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/start_new_thread', methods=['POST'])
 def start_thread():
@@ -185,6 +221,22 @@ def initialize_user_thread_counter(username): # need to call at creation of each
     # Set the initial value of the counter
     counter_ref.set({'last_thread_number': 0})
 
+
+def generate_unique_patient_id():
+    # Repeat until a unique ID is found
+    while True:
+        # Generate a random number for patientID
+        patient_id = str(random.randint(10000, 99999))  # Adjust range as needed
+
+        # Check if this patientID is already in use
+        if not check_patient_id_exists(patient_id):
+            return patient_id
+
+def check_patient_id_exists(patient_id):
+    # Query Firestore to check if the patientID already exists
+    users_ref = db.collection('users')
+    query = users_ref.where('patientID', '==', patient_id).limit(1).stream()
+    return any(query)
 
 @firestore.transactional
 def increment_counter(transaction, counter_ref):
