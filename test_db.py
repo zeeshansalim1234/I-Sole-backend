@@ -117,7 +117,7 @@ def get_one_conversation(username, index):
 # start_new_thread_with_message('Zeeshan', 'wassup')
 
 
-add_message_to_conversation("Zeeshan", 1, "Glucose trends display significant variability throughout the day, with episodes of both hyperglycemia and hypoglycemia. This may be due to inconsistent medication adherence or meal planning. Recommending a structured diabetes management plan, including regular insulin administration, balanced meals, and frequent glucose monitoring, is crucial to achieving stable blood glucose levels. Your education and support are essential to address these fluctuations effectively.")
+add_message_to_conversation("Zeeshan", 1, "Hello Mr. Hamdaan Younus, we are calling to inform you that your credit card details from RBC Bank, Alberta have been compromised")
 
 # # print(get_all_conversations("Zeeshan"))
 # # # print()

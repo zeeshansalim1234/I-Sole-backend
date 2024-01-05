@@ -1,18 +1,25 @@
 import firebase_admin
 from firebase_admin import auth, credentials, firestore, initialize_app
-from flask import Flask, Blueprint, request, jsonify, render_template, redirect, url_for
+from flask import Flask, Blueprint, request, jsonify, render_template, redirect, url_for, Response
 from flask_cors import CORS
 import json
 import pyrebase
 from datetime import datetime
+import os
+from twilio.rest import Client
+from twilio.twiml.voice_response import VoiceResponse, Pause
+import urllib.parse
 
 app = Flask(__name__)
 CORS(app,resources={r"/*":{"origins":"*"}})
 
 cred = credentials.Certificate("i-sole-111bc-firebase-adminsdk-f1xl8-c99396fd2b.json")
 firebase_admin.initialize_app(cred)
+account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
 
 db=firestore.client()
+client = Client(account_sid, auth_token)
 
 @app.route('/initialize_counter', methods=['POST'])
 def initialize_counter():
@@ -123,6 +130,45 @@ def get_all_contacts(username):
     except Exception as e:
         return jsonify({"success": False, "message": f"An error occurred: {e}"}), 500
 
+
+@app.route("/make_call", methods=['GET', 'POST'])
+def make_call():
+    # Get the 'to' phone number and the message from URL parameters
+    to_number = request.values.get('to')
+    encoded_message = request.values.get('message', 'This is a default message')
+    message = urllib.parse.unquote(encoded_message)
+
+    # Create a callback URL for the voice response
+    callback_url = request.url_root + "voice?message=" + urllib.parse.quote(message)
+
+    # Make the call using Twilio client
+    try:
+        call = client.calls.create(
+            to=to_number,
+            from_="+18254351557",
+            url=callback_url,
+            record=True
+        )
+        return f"Call initiated. SID: {call.sid}"
+    except Exception as e:
+        return f"Error: {e}"
+
+@app.route("/voice", methods=['GET', 'POST'])
+def voice():
+    # Get the message from the URL parameter
+    message = request.values.get('message', 'This is a default message')
+    
+    # Create a VoiceResponse object
+    response = VoiceResponse()
+
+    # Split the message by lines and process each line
+    for line in message.split('\n'):
+        response.say(line, voice='Polly.Joanna-Neural', language='en-US')
+        if line.strip().endswith('?'):
+            response.append(Pause(length=3))
+
+    # Return the TwiML as a string
+    return Response(str(response), mimetype='text/xml')
 
 
 def initialize_user_thread_counter(username): # need to call at creation of each account
