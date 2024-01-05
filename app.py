@@ -53,6 +53,7 @@ def signup():
         user_ref.set({
             'email': email,
             'fullName': full_name,
+            'username': username,
             'role': role,
             'password': password,  # Consider hashing the password
             'patientID': patient_id
@@ -63,6 +64,42 @@ def signup():
     except Exception as e:
         # Handle exceptions
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/signin', methods=['POST'])
+def signin():
+    try:
+        # Parse the incoming data from the sign-in form
+        signin_data = request.json
+        username = signin_data['username']
+        password = signin_data['password']
+
+        print(username)
+        print(password)
+
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+
+        # Attempt to get the document
+        user_doc = user_ref.get()
+
+        # Check if the document exists and if the password matches
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            if user_data['password'] == password:  # Consider using hashed passwords in production
+                # Authentication successful
+                return jsonify({"success": True, "message": "User signed in successfully", "user_data": user_data}), 200
+            else:
+                # Authentication failed
+                return jsonify({"success": False, "message": "Incorrect password"}), 401
+        else:
+            # User not found
+            return jsonify({"success": False, "message": "User not found"}), 404
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
 
 @app.route('/get_username_by_patient_id/<patient_id>', methods=['GET'])
 def get_username_by_patient_id(patient_id):
