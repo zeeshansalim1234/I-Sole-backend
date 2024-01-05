@@ -58,18 +58,32 @@ def signup():
             'patientID': patient_id
         })
 
-        return jsonify({"success": True, "message": "User created successfully"}), 201
+        return jsonify({"success": True, "message": "User created successfully", 'patientID': patient_id}), 201
 
     except Exception as e:
         # Handle exceptions
         return jsonify({"success": False, "message": str(e)}), 500
 
+@app.route('/get_username_by_patient_id/<patient_id>', methods=['GET'])
+def get_username_by_patient_id(patient_id):
+    try:
+        # Retrieve the username mapped to the patient_id
+        username = get_username_from_patient_id(patient_id)
+        if username:
+            return jsonify({"success": True, "username": username}), 200
+        else:
+            return jsonify({"success": False, "message": "Username not found for the given patient ID"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @app.route('/start_new_thread', methods=['POST'])
 def start_thread():
     data = request.json
     username = data['username']
+    sender = data['sender']
     message = data['message']
-    start_new_thread_with_message(username, message)
+    start_new_thread_with_message(username, message, sender)
     return jsonify({"success": True})
 
 @app.route('/add_message', methods=['POST'])
@@ -257,6 +271,17 @@ def update_id_map(patient_id, username):
     transaction = db.transaction()
     update_in_transaction(transaction, idmap_ref, patient_id, username)
 
+
+def get_username_from_patient_id(patient_id):
+    # Assuming you have a 'system_data' collection and an 'idmap' document
+    idmap_ref = db.collection('system_data').document('idmap')
+    idmap_doc = idmap_ref.get()
+    if idmap_doc.exists:
+        idmap = idmap_doc.to_dict()
+        return idmap.get(patient_id)
+    return None
+
+
 @firestore.transactional
 def increment_counter(transaction, counter_ref):
     snapshot = counter_ref.get(transaction=transaction)
@@ -270,7 +295,7 @@ def increment_counter(transaction, counter_ref):
     transaction.update(counter_ref, {'last_thread_number': new_number})
     return new_number
 
-def start_new_thread_with_message(username, message):
+def start_new_thread_with_message(username, message, sender):
     counter_ref = db.collection('users').document(username).collection('feedback').document('thread_counter')
     new_thread_number = increment_counter(db.transaction(), counter_ref)
 
@@ -283,7 +308,7 @@ def start_new_thread_with_message(username, message):
         'message': message,
         'date': date_str,
         'time': time_str,
-        'sender': username
+        'sender': sender
     }
 
     doc_ref = db.collection('users').document(username).collection('feedback').document(new_thread)
