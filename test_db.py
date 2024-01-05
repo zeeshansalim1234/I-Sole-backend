@@ -114,11 +114,11 @@ def get_one_conversation(username, index):
 
 # initialize_user_thread_counter('Zeeshan')
 
-start_new_thread_with_message('Zeeshan', 'wassup')
+# start_new_thread_with_message('Zeeshan', 'wassup')
 
 
-add_message_to_conversation("Zeeshan", 1, "modzilla")
+add_message_to_conversation("Zeeshan", 1, "Glucose trends display significant variability throughout the day, with episodes of both hyperglycemia and hypoglycemia. This may be due to inconsistent medication adherence or meal planning. Recommending a structured diabetes management plan, including regular insulin administration, balanced meals, and frequent glucose monitoring, is crucial to achieving stable blood glucose levels. Your education and support are essential to address these fluctuations effectively.")
 
-print(get_all_conversations("Zeeshan"))
-# print()
-# print(get_one_conversation("Zeeshan", 2))
+# # print(get_all_conversations("Zeeshan"))
+# # # print()
+# # # print(get_one_conversation("Zeeshan", 2))

@@ -4,6 +4,7 @@ from flask import Flask, Blueprint, request, jsonify, render_template, redirect,
 from flask_cors import CORS
 import json
 import pyrebase
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app,resources={r"/*":{"origins":"*"}})
@@ -49,6 +50,79 @@ def get_one(username, index):
         return jsonify(conversation)
     else:
         return jsonify({"error": "Conversation not found"}), 404
+
+
+@app.route('/add_contact', methods=['POST'])
+def add_contact():
+    try:
+        # Parse the request data
+        data = request.get_json()
+        username = data['username']  # Make sure to send 'username' in your request payload
+        new_contact = data['newContact']
+        contact_info = {
+            'name': new_contact['contactName'],
+            'relationship': new_contact['relationship'],
+            'phone_number': new_contact['phoneNumber'],
+            'email': new_contact.get('email', None),  # Optional field
+            'glucose_level_alert': new_contact['glucoseAlert'],
+            'medication_reminder': new_contact['medicationReminder']
+        }
+        
+        # Add a new contact document to the 'contacts' subcollection
+        contact_ref = db.collection('users').document(username).collection('contacts').document()
+        contact_ref.set(contact_info)
+        
+        # Return success response
+        return jsonify({"success": True}), 200
+    
+    except Exception as e:
+        app.logger.error(f"An error occurred: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/delete_contact', methods=['POST'])
+def delete_contact():
+    try:
+        # Parse the request data
+        data = request.get_json()
+        username = data['username']  # Username to identify the user's document
+        contact_name = data['contactName']  # Contact name to identify the contact document
+
+        # Query the contacts subcollection for the user to find the contact document
+        contacts_ref = db.collection('users').document(username).collection('contacts')
+        contacts = contacts_ref.where('name', '==', contact_name).stream()
+
+        # Delete the contact document(s)
+        for contact in contacts:
+            contact_ref = contacts_ref.document(contact.id)
+            contact_ref.delete()
+
+        # Return success response
+        return jsonify({"success": True, "message": "Contact deleted successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "message": f"An error occurred: {e}"}), 500
+
+@app.route('/get_all_contacts/<username>', methods=['GET'])
+def get_all_contacts(username):
+    try:
+        # Query the contacts subcollection for the given user
+        contacts_ref = db.collection('users').document(username).collection('contacts')
+        contacts_query = contacts_ref.stream()
+
+        # Collect contact data from the documents
+        contacts = []
+        for contact_doc in contacts_query:
+            contact_info = contact_doc.to_dict()
+            contact_info['id'] = contact_doc.id  # Optionally include the document ID
+            contacts.append(contact_info)
+
+        # Return the contacts in the response
+        return jsonify({"success": True, "contacts": contacts}), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "message": f"An error occurred: {e}"}), 500
+
 
 
 def initialize_user_thread_counter(username): # need to call at creation of each account
