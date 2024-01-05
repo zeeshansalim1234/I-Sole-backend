@@ -134,9 +134,16 @@ def get_all_contacts(username):
 @app.route("/make_call", methods=['GET', 'POST'])
 def make_call():
     # Get the 'to' phone number and the message from URL parameters
-    to_number = request.values.get('to')
-    encoded_message = request.values.get('message', 'This is a default message')
-    message = urllib.parse.unquote(encoded_message)
+    if request.method == 'POST':
+        data = request.json
+        to_number = data.get('to')
+        message = data.get('message', 'This is a default message')
+    else:
+        to_number = request.values.get('to')
+        encoded_message = request.values.get('message', 'This is a default message')
+        message = urllib.parse.unquote(encoded_message)
+
+    print('Hello World')
 
     # Create a callback URL for the voice response
     callback_url = request.url_root + "voice?message=" + urllib.parse.quote(message)
