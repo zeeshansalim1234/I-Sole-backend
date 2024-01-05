@@ -92,7 +92,8 @@ def add_message():
     username = data['username']
     index = data['index']
     message = data['message']
-    add_message_to_conversation(username, index, message)
+    sender = data['sender']
+    add_message_to_conversation(username, index, message, sender)
     return jsonify({"success": True})
 
 @app.route('/get_all_conversations/<username>', methods=['GET'])
@@ -315,7 +316,7 @@ def start_new_thread_with_message(username, message, sender):
     doc_ref.set({'messages': [message_data]})
 
 
-def add_message_to_conversation(username, index, message):
+def add_message_to_conversation(username, index, message, sender):
     desired_thread = "thread" + str(index)
     # Get the current datetime
     now = datetime.now()
@@ -328,7 +329,7 @@ def add_message_to_conversation(username, index, message):
         'message': message,
         'date': date_str,
         'time': time_str,
-        'sender': username
+        'sender': sender
     }
 
     # Get a reference to the document
