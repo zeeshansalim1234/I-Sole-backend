@@ -203,6 +203,33 @@ def delete_contact():
     except Exception as e:
         return jsonify({"success": False, "message": f"An error occurred: {e}"}), 500
 
+
+@app.route('/get_my_doctor/<username>', methods=['GET'])
+def get_my_doctor(username):
+    try:
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+
+        # Get the user document data
+        user_doc = user_ref.get()
+
+        # Check if the document exists and has the 'myDoctor' field
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            my_doctor = user_data.get('myDoctor')
+            if my_doctor:
+                print(my_doctor)
+                return jsonify({"success": True, "myDoctor": my_doctor}), 200
+            else:
+                return jsonify({"success": False, "message": "myDoctor not found for the user"}), 404
+        else:
+            return jsonify({"success": False, "message": "User not found"}), 404
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @app.route('/get_all_contacts/<username>', methods=['GET'])
 def get_all_contacts(username):
     try:
