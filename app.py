@@ -46,6 +46,9 @@ def signup():
             patient_id = generate_unique_patient_id()
             update_id_map(patient_id, username)
 
+        if role == 'Doctor': # add this doct as `myDoctor` for the patient profile
+            add_doctor(get_username_from_patient_id(patient_id), username)
+
         # Create a reference to the Firestore document
         user_ref = db.collection('users').document(username)
 
@@ -267,6 +270,13 @@ def voice():
     # Return the TwiML as a string
     return Response(str(response), mimetype='text/xml')
 
+
+def add_doctor(username, doctorName):
+    # Reference to the Firestore document of the user
+    user_ref = db.collection('users').document(username)
+
+    # Update the user document to add the 'myDoctor' field
+    user_ref.update({'myDoctor': doctorName})
 
 def initialize_user_thread_counter(username): # need to call at creation of each account
     # Reference to the user's thread counter document
