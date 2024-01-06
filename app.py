@@ -59,7 +59,9 @@ def signup():
             'patientID': patient_id
         })
 
-        return jsonify({"success": True, "message": "User created successfully", 'patientID': patient_id}), 201
+        user_data = user_ref.get().to_dict()
+
+        return jsonify({"success": True, "message": "User created successfully", 'user_data': user_data}), 201
 
     except Exception as e:
         # Handle exceptions
@@ -240,7 +242,7 @@ def make_call():
     try:
         call = client.calls.create(
             to=to_number,
-            from_="+18254351557",
+            from_="+18259944948",
             url=callback_url,
             record=True
         )
