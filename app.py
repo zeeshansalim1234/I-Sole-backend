@@ -12,7 +12,7 @@ import urllib.parse
 import random
 
 app = Flask(__name__)
-CORS(app,resources={r"/*":{"origins":"*"}})
+CORS(app, resources={r"/*": {"origins": ["https://zeeshansalim1234.github.io"]}})
 
 cred = credentials.Certificate("i-sole-111bc-firebase-adminsdk-f1xl8-c99396fd2b.json")
 firebase_admin.initialize_app(cred)
@@ -266,7 +266,7 @@ def make_call():
     print('Hello World')
 
     # Create a callback URL for the voice response
-    callback_url = request.url_root + "voice?message=" + urllib.parse.quote(message)
+    callback_url = "https://i-sole-backend.com/voice?message=" + urllib.parse.quote(message)
 
     # Make the call using Twilio client
     try:
