@@ -144,7 +144,7 @@ def get_username_by_patient_id(patient_id):
 
 @app.route('/start_new_thread', methods=['POST'])
 def start_thread():
-    # initializes a new thread to Firebase DB
+    # Initializes a new thread to Firebase DB
     data = request.json
     username = data['username']
     sender = data['sender']
@@ -154,7 +154,7 @@ def start_thread():
 
 @app.route('/add_message', methods=['POST'])
 def add_message():
-    # appends a message to existing thread in Firebase DB
+    # Appends a message to existing thread in Firebase DB
     data = request.json
     username = data['username']
     index = data['index']
@@ -165,13 +165,13 @@ def add_message():
 
 @app.route('/get_all_conversations/<username>', methods=['GET'])
 def get_all(username):
-    # returns all threads for the specific user
+    # Returns all threads for the specific user
     conversations = get_all_conversations(username)
     return jsonify(conversations)
 
 @app.route('/get_one_conversation/<username>/<int:index>', methods=['GET'])
 def get_one(username, index):
-    # returns 1 thread for which 'index' is passed, for the provided 'username'
+    # Returns 1 thread for which 'index' is passed, for the provided 'username'
     conversation = get_one_conversation(username, index)
     if conversation is not None:
         return jsonify(conversation)
@@ -181,7 +181,7 @@ def get_one(username, index):
 
 @app.route('/add_contact', methods=['POST'])
 def add_contact():
-    # stores a new emergency contact for the current user in the Firebase DB
+    # Stores a new emergency contact for the current user in the Firebase DB
     try:
         # Parse the request data
         data = request.get_json()
@@ -210,7 +210,7 @@ def add_contact():
 
 @app.route('/delete_contact', methods=['POST'])
 def delete_contact():
-    # deletes an existing emergency contact for the current user from the Firebase DB
+    # Deletes an existing emergency contact for the current user from the Firebase DB
     try:
         # Parse the request data
         data = request.get_json()
@@ -235,7 +235,7 @@ def delete_contact():
 
 @app.route('/get_my_doctor/<username>', methods=['GET'])
 def get_my_doctor(username):
-    # returns the 'doctorName' for the provided 'patientName'
+    # Returns the 'doctorName' for the provided 'patientName'
     try:
         # Reference to the Firestore document of the user
         user_ref = db.collection('users').document(username)
@@ -262,7 +262,7 @@ def get_my_doctor(username):
 
 @app.route('/get_all_contacts/<username>', methods=['GET'])
 def get_all_contacts(username):
-    # returns all emergency contact for the provided username
+    # Returns all emergency contact for the provided username
     try:
         # Query the contacts subcollection for the given user
         contacts_ref = db.collection('users').document(username).collection('contacts')
