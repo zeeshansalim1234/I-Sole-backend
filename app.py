@@ -10,6 +10,22 @@ from twilio.rest import Client
 from twilio.twiml.voice_response import VoiceResponse, Pause
 import urllib.parse
 import random
+import bcrypt
+
+
+"""
+This is the backend code for the I-Sole web application currently hosted on https://i-sole.site/.
+
+The functionalities this backend supports are:
+
+1. Authetication for login/signup
+2. Thread-like chatting functionality
+3. User Twilio to make emergency calls to patient's notifiers
+4. Generates and returns patient's data analytics for Dashboard
+5. Retrieve and store data in Firebase Database (NoSQL)
+"""
+
+"""App Config Setup"""
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": ["https://zeeshansalim1234.github.io"]}})
@@ -22,8 +38,11 @@ auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
 db=firestore.client()
 client = Client(account_sid, auth_token)
 
+"""Setup Flask Endpoints"""
+
 @app.route('/initialize_counter', methods=['POST'])
 def initialize_counter():
+    # This is necessary to keep track of the number of active threads in the chat section
     data = request.json
     username = data['username']
     initialize_user_thread_counter(username)
@@ -38,8 +57,11 @@ def signup():
         email = signup_data['email']
         full_name = signup_data['fullName']
         role = signup_data['role']
-        password = signup_data['password']  # Be careful with handling passwords
+        password = signup_data['password']
         patient_id = signup_data.get('patientID', None)  # Optional field
+
+        # Hash the password for security
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
          # Check if the role is 'Patient' and generate a unique patientID
         if role == 'Patient':
@@ -58,7 +80,7 @@ def signup():
             'fullName': full_name,
             'username': username,
             'role': role,
-            'password': password,  # Consider hashing the password
+            'password': hashed_password.decode('utf-8'),  # Store hashed password as a string
             'patientID': patient_id
         })
 
@@ -78,9 +100,7 @@ def signin():
         signin_data = request.json
         username = signin_data['username']
         password = signin_data['password']
-
-        print(username)
-        print(password)
+        entered_password = signin_data['password'].encode('utf-8')  # Encode the entered password
 
         # Reference to the Firestore document of the user
         user_ref = db.collection('users').document(username)
@@ -91,7 +111,10 @@ def signin():
         # Check if the document exists and if the password matches
         if user_doc.exists:
             user_data = user_doc.to_dict()
-            if user_data['password'] == password:  # Consider using hashed passwords in production
+            stored_password = user_data['password'].encode('utf-8')  # Encode the stored password
+
+            # Compare the entered password with the stored hash
+            if bcrypt.checkpw(entered_password, stored_password):
                 # Authentication successful
                 return jsonify({"success": True, "message": "User signed in successfully", "user_data": user_data}), 200
             else:
@@ -121,6 +144,7 @@ def get_username_by_patient_id(patient_id):
 
 @app.route('/start_new_thread', methods=['POST'])
 def start_thread():
+    # initializes a new thread to Firebase DB
     data = request.json
     username = data['username']
     sender = data['sender']
@@ -130,6 +154,7 @@ def start_thread():
 
 @app.route('/add_message', methods=['POST'])
 def add_message():
+    # appends a message to existing thread in Firebase DB
     data = request.json
     username = data['username']
     index = data['index']
@@ -140,11 +165,13 @@ def add_message():
 
 @app.route('/get_all_conversations/<username>', methods=['GET'])
 def get_all(username):
+    # returns all threads for the specific user
     conversations = get_all_conversations(username)
     return jsonify(conversations)
 
 @app.route('/get_one_conversation/<username>/<int:index>', methods=['GET'])
 def get_one(username, index):
+    # returns 1 thread for which 'index' is passed, for the provided 'username'
     conversation = get_one_conversation(username, index)
     if conversation is not None:
         return jsonify(conversation)
@@ -154,6 +181,7 @@ def get_one(username, index):
 
 @app.route('/add_contact', methods=['POST'])
 def add_contact():
+    # stores a new emergency contact for the current user in the Firebase DB
     try:
         # Parse the request data
         data = request.get_json()
@@ -182,6 +210,7 @@ def add_contact():
 
 @app.route('/delete_contact', methods=['POST'])
 def delete_contact():
+    # deletes an existing emergency contact for the current user from the Firebase DB
     try:
         # Parse the request data
         data = request.get_json()
@@ -206,6 +235,7 @@ def delete_contact():
 
 @app.route('/get_my_doctor/<username>', methods=['GET'])
 def get_my_doctor(username):
+    # returns the 'doctorName' for the provided 'patientName'
     try:
         # Reference to the Firestore document of the user
         user_ref = db.collection('users').document(username)
@@ -232,6 +262,7 @@ def get_my_doctor(username):
 
 @app.route('/get_all_contacts/<username>', methods=['GET'])
 def get_all_contacts(username):
+    # returns all emergency contact for the provided username
     try:
         # Query the contacts subcollection for the given user
         contacts_ref = db.collection('users').document(username).collection('contacts')
@@ -253,6 +284,8 @@ def get_all_contacts(username):
 
 @app.route("/make_call", methods=['GET', 'POST'])
 def make_call():
+    # This essentially sets up the config necessary for making a Twilio call via /voice
+
     # Get the 'to' phone number and the message from URL parameters
     if request.method == 'POST':
         data = request.json
@@ -282,6 +315,8 @@ def make_call():
 
 @app.route("/voice", methods=['GET', 'POST'])
 def voice():
+    # Leverages Twilio API to call patient's emergency contact
+
     # Get the message from the URL parameter
     message = request.values.get('message', 'This is a default message')
     
@@ -297,6 +332,7 @@ def voice():
     # Return the TwiML as a string
     return Response(str(response), mimetype='text/xml')
 
+"""Helper Methods"""
 
 def add_doctor(username, doctorName):
     # Reference to the Firestore document of the user
