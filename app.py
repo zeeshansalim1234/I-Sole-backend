@@ -460,6 +460,72 @@ def get_glucose_data(username):
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+@app.route('/add_meal/<username>', methods=['POST'])
+def add_meal(username):
+    try:
+        # Get meal data from request
+        meal_data = request.json
+
+        # Ensure required fields are provided
+        if 'meal_type' not in meal_data or 'meal_description' not in meal_data:
+            return jsonify({"success": False, "message": "Meal data incomplete"}), 400
+
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+
+        # Add meal data to user's meals collection
+        user_ref.collection('meals').add({
+            'meal_type': meal_data['meal_type'],
+            'meal_description': meal_data['meal_description'],
+            'timestamp': firestore.SERVER_TIMESTAMP
+        })
+
+        return jsonify({"success": True, "message": "Meal added successfully"}), 200
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/get_meals/<username>', methods=['GET'])
+def get_meals(username):
+    try:
+        # Get start and end timestamps from query parameters
+        start_timestamp_str = request.args.get('start')
+        end_timestamp_str = request.args.get('end')
+
+        # Convert timestamps to datetime objects
+        start_timestamp = datetime.fromisoformat(start_timestamp_str)
+        end_timestamp = datetime.fromisoformat(end_timestamp_str)
+
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+
+        # Get meals collection for the user
+        meals_ref = user_ref.collection('meals')
+
+        # Query meals collection within the specified time range
+        meals_docs = meals_ref.where('timestamp', '>=', start_timestamp)\
+                              .where('timestamp', '<=', end_timestamp)\
+                              .order_by('timestamp', direction='DESCENDING')\
+                              .limit(10)\
+                              .get()
+
+        meals_data = []
+        for doc in meals_docs:
+            meals_data.append({
+                'meal_type': doc.get('meal_type'),
+                'timestamp': doc.get('timestamp'),
+                'meal_description': doc.get('meal_description')
+            })
+
+        return jsonify({"success": True, "mealsData": meals_data}), 200
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 """Helper Methods"""
 
 def add_doctor(username, doctorName):
