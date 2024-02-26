@@ -332,6 +332,134 @@ def voice():
     # Return the TwiML as a string
     return Response(str(response), mimetype='text/xml')
 
+
+@app.route('/add_pressure_value/<username>', methods=['POST'])
+def add_pressure_value(username):
+    try:
+        # Get pressure value from request
+        pressure_value = request.json.get('pressure')
+
+        # Ensure pressure value is provided
+        if pressure_value is None:
+            return jsonify({"success": False, "message": "Pressure value not provided"}), 400
+
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+
+        # Add pressure value to user's pressureData collection
+        user_ref.collection('pressureData').add({
+            'pressure': pressure_value,
+            'timestamp': firestore.SERVER_TIMESTAMP
+        })
+
+        return jsonify({"success": True, "message": "Pressure value added successfully"}), 200
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/get_pressure_data/<username>', methods=['GET'])
+def get_pressure_data(username):
+    try:
+        # Get start and end timestamps from query parameters
+        start_timestamp_str = request.args.get('start')
+        end_timestamp_str = request.args.get('end')
+
+        # Convert timestamps to datetime objects
+        start_timestamp = datetime.fromisoformat(start_timestamp_str)
+        end_timestamp = datetime.fromisoformat(end_timestamp_str)
+
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+
+        # Get pressure data collection for the user
+        pressure_data_ref = user_ref.collection('pressureData')
+
+        # Query pressure data collection within the specified time range
+        pressure_data_docs = pressure_data_ref.where('timestamp', '>=', start_timestamp)\
+                                              .where('timestamp', '<=', end_timestamp)\
+                                              .order_by('timestamp', direction='DESCENDING')\
+                                              .limit(10)\
+                                              .get()
+
+        pressure_data = []
+        for doc in pressure_data_docs:
+            pressure_data.append({
+                'pressure': doc.get('pressure'),
+                'timestamp': doc.get('timestamp')
+            })
+
+        return jsonify({"success": True, "pressureData": pressure_data}), 200
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/add_glucose_value/<username>', methods=['POST'])
+def add_glucose_value(username):
+    try:
+        # Get glucose value from request
+        glucose_value = request.json.get('glucose')
+
+        # Ensure glucose value is provided
+        if glucose_value is None:
+            return jsonify({"success": False, "message": "Glucose value not provided"}), 400
+
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+
+        # Add glucose value to user's glucoseData collection
+        user_ref.collection('glucoseData').add({
+            'glucose': glucose_value,
+            'timestamp': firestore.SERVER_TIMESTAMP
+        })
+
+        return jsonify({"success": True, "message": "Glucose value added successfully"}), 200
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/get_glucose_data/<username>', methods=['GET'])
+def get_glucose_data(username):
+    try:
+        # Get start and end timestamps from query parameters
+        start_timestamp_str = request.args.get('start')
+        end_timestamp_str = request.args.get('end')
+
+        # Convert timestamps to datetime objects
+        start_timestamp = datetime.fromisoformat(start_timestamp_str)
+        end_timestamp = datetime.fromisoformat(end_timestamp_str)
+
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+
+        # Get glucose data collection for the user
+        glucose_data_ref = user_ref.collection('glucoseData')
+
+        # Query glucose data collection within the specified time range
+        glucose_data_docs = glucose_data_ref.where('timestamp', '>=', start_timestamp)\
+                                              .where('timestamp', '<=', end_timestamp)\
+                                              .order_by('timestamp', direction='DESCENDING')\
+                                              .limit(10)\
+                                              .get()
+
+        glucose_data = []
+        for doc in glucose_data_docs:
+            glucose_data.append({
+                'glucose': doc.get('glucose'),
+                'timestamp': doc.get('timestamp')
+            })
+
+        return jsonify({"success": True, "glucoseData": glucose_data}), 200
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 """Helper Methods"""
 
 def add_doctor(username, doctorName):
