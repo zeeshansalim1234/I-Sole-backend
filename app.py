@@ -338,10 +338,15 @@ def voice():
 def add_pressure_value(username):
     try:
         # Get pressure value from request
-        pressure_value = request.json.get('pressure')
+        pressure_value1 = request.json.get('p1')
+        pressure_value2 = request.json.get('p2')
+        pressure_value3 = request.json.get('p3')
+        pressure_value4 = request.json.get('p4')
+        pressure_value5 = request.json.get('p5')
+        pressure_value6 = request.json.get('p6')
 
         # Ensure pressure value is provided
-        if pressure_value is None:
+        if pressure_value1 is None:
             return jsonify({"success": False, "message": "Pressure value not provided"}), 400
 
         # Reference to the Firestore document of the user
@@ -349,7 +354,12 @@ def add_pressure_value(username):
 
         # Add pressure value to user's pressureData collection
         user_ref.collection('pressureData').add({
-            'pressure': pressure_value,
+            'p1': pressure_value1,
+            'p2': pressure_value2,
+            'p3': pressure_value3,
+            'p4': pressure_value4,
+            'p5': pressure_value5,
+            'p6': pressure_value6,
             'timestamp': firestore.SERVER_TIMESTAMP
         })
 
