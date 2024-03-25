@@ -28,15 +28,16 @@ The functionalities this backend supports are:
 """App Config Setup"""
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["https://zeeshansalim1234.github.io"]}})
+# CORS(app, resources={r"/*": {"origins": ["https://zeeshansalim1234.github.io"]}})
+CORS(app, resources={r"/*": {"origins": "*"}})
 
-cred = credentials.Certificate("i-sole-111bc-firebase-adminsdk-f1xl8-c99396fd2b.json")
+cred = credentials.Certificate("i-sole-111bc-firebase-adminsdk-f1xl8-49b2e90098.json")
 firebase_admin.initialize_app(cred)
-account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
-auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+# account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+# auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
 
 db=firestore.client()
-client = Client(account_sid, auth_token)
+# client = Client(account_sid, auth_token)
 
 """Setup Flask Endpoints"""
 
@@ -379,8 +380,7 @@ def get_pressure_data(username):
         # Query pressure data collection within the specified time range
         pressure_data_docs = pressure_data_ref.where('timestamp', '>=', start_timestamp)\
                                               .where('timestamp', '<=', end_timestamp)\
-                                              .order_by('timestamp', direction='DESCENDING')\
-                                              .limit(10)\
+                                              .order_by('timestamp')\
                                               .get()
 
         pressure_data = []
@@ -442,8 +442,7 @@ def get_glucose_data(username):
         # Query glucose data collection within the specified time range
         glucose_data_docs = glucose_data_ref.where('timestamp', '>=', start_timestamp)\
                                               .where('timestamp', '<=', end_timestamp)\
-                                              .order_by('timestamp', direction='DESCENDING')\
-                                              .limit(10)\
+                                              .order_by('timestamp')\
                                               .get()
 
         glucose_data = []
@@ -477,6 +476,7 @@ def add_meal(username):
         user_ref.collection('meals').add({
             'meal_type': meal_data['meal_type'],
             'meal_description': meal_data['meal_description'],
+            'carbohydrate_intake': meal_data['carbohydrate_intake'],
             'timestamp': firestore.SERVER_TIMESTAMP
         })
 
@@ -524,7 +524,724 @@ def get_meals(username):
     except Exception as e:
         # Handle exceptions
         return jsonify({"success": False, "message": str(e)}), 500
+    
 
+@app.route('/add_blood_glucose_level', methods=['POST'])
+def add_blood_glucose_level():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        bloodGlucoseLevel = request.json.get('bloodGlucoseLevel')
+        
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        
+        if personal_info_data:
+           personal_metrics_ref.update({'blood_glucose_level': bloodGlucoseLevel})
+           # Return success response
+           return jsonify({"success": True}), 200
+
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404
+        
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+        
+@app.route('/get_blood_glucose_level/<username>', methods=['GET'])
+def get_blood_glucose_level(username):
+    try:
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        # Get the user document data
+        user_doc = user_ref.get()
+        # Check if the document exists
+        if user_doc.exists:
+            # Get specific field from user document data
+            user_data = user_doc.to_dict()
+            blood_glucose_level = user_data.get('blood_glucose_level')
+            return jsonify({"success": True, "data": {"blood_glucose_level": blood_glucose_level}}), 200
+        else:
+            return jsonify({"success": False, "message": "User not found"}), 404
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/update_predicted_hypoglycemia', methods=['POST'])
+def update_predicted_hypoglycemia():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        predicted_hypoglycemia = request.json.get('predicted_hypoglycemia')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'predicted_hypoglycemia': predicted_hypoglycemia})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404
+        
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/get_predicted_hypoglycemia/<username>', methods=['GET'])
+def get_predicted_hypoglycemia(username):
+    try:
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        # Get the user document data
+        user_doc = user_ref.get()
+        # Check if the document exists
+        if user_doc.exists:
+            # Get specific field from user document data
+            user_data = user_doc.to_dict()
+            predicted_hypoglycemia = user_data.get('predicted_hypoglycemia')
+            return jsonify({"success": True, "data": {"predicted_hypoglycemia": predicted_hypoglycemia}}), 200
+        else:
+            return jsonify({"success": False, "message": "User not found"}), 404
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_predicted_hyperglycemia', methods=['POST'])
+def update_predicted_hyperglycemia():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        predicted_hyperglycemia = request.json.get('predicted_hyperglycemia')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'predicted_hyperglycemia': predicted_hyperglycemia})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404
+        
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/get_predicted_hyperglycemia/<username>', methods=['GET'])
+def get_predicted_hyperglycemia(username):
+    try:
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        # Get the user document data
+        user_doc = user_ref.get()
+        # Check if the document exists
+        if user_doc.exists:
+            # Get specific field from user document data
+            user_data = user_doc.to_dict()
+            predicted_hyperglycemia = user_data.get('predicted_hyperglycemia')
+            return jsonify({"success": True, "data": {"predicted_hyperglycemia": predicted_hyperglycemia}}), 200
+        else:
+            return jsonify({"success": False, "message": "User not found"}), 404
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_height', methods=['POST'])
+def update_height():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        height = request.json.get('height')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'height': height})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404
+        
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_insulin_dosage', methods=['POST'])
+def update_insulin_dosage():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        insulinDosage = request.json.get('insulinDosage')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'insulin_dosage': insulinDosage})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404
+        
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_allergies', methods=['POST'])
+def update_allergies():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        allergies = request.json.get('allergies')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'allergies': allergies})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404
+        
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_insulin_type', methods=['POST'])
+def update_insulin_type():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        insulin_type = request.json.get('insulin_type')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'insulin_type': insulin_type})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404  
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_physical_activity', methods=['POST'])
+def update_physical_activity():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        physical_activity = request.json.get('physical_activity')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'physical_activity': physical_activity})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404  
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_activity_intensity', methods=['POST'])
+def update_activity_intensity():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        activity_intensity = request.json.get('activity_intensity')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'activity_intensity': activity_intensity})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404  
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_activity_duration', methods=['POST'])
+def update_activity_duration():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        activity_duration = request.json.get('activity_duration')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'activity_duration': activity_duration})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404  
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_stress_level', methods=['POST'])
+def update_stress_level():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        stress_level = request.json.get('stress_level')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'stress_level': stress_level})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404  
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_illness', methods=['POST'])
+def update_illness():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        illness = request.json.get('illness')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'illness': illness})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404  
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_hormonal_changes', methods=['POST'])
+def update_hormonal_changes():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        hormonal_changes = request.json.get('hormonal_changes')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'hormonal_changes': hormonal_changes})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404  
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_alcohol_consumption', methods=['POST'])
+def update_alcohol_consumption():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        alcohol_consumption = request.json.get('alcohol_consumption')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'alcohol_consumption': alcohol_consumption})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404  
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_medication', methods=['POST'])
+def update_medication():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        medication = request.json.get('medication')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'medication': medication})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404  
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_medication_dosage', methods=['POST'])
+def update_medication_dosage():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        medication_dosage = request.json.get('medication_dosage')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'medication_dosage': medication_dosage})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404  
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_weather_conditions', methods=['POST'])
+def update_weather_conditions():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        weather_conditions = request.json.get('weather_conditions')
+        # Check if the document exists
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        personal_info_data = personal_metrics_ref.get().to_dict()
+        if personal_info_data:
+           personal_metrics_ref.update({'weather_conditions': weather_conditions})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document personal_info does not exist for user: " + username}), 404  
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/get_personal_metrics/<username>', methods=['GET'])
+def get_personal_metrics(username):
+    try:
+        # Reference to the Firestore document of the user
+        personal_metrics_ref = db.collection('users').document(username).collection('personal-metrics').document('personal-info')
+        # Get the user document data
+        personal_metrics_doc = personal_metrics_ref.get()
+        # Check if the document exists
+        if personal_metrics_doc.exists:
+            personal_data = personal_metrics_doc.to_dict()
+            return jsonify({"success": True, "data": personal_data}), 200  # Set success to True and include data
+        else:
+            return jsonify({"success": False, "message": "Personal metrics not found"}), 404
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/update_name', methods=['POST'])
+def update_name():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        name = request.json.get('name')
+        
+        # Check if the document exists
+        users_ref = db.collection('users').document(username)
+        profile_data = users_ref.get().to_dict()
+        
+        if profile_data:
+           users_ref.update({'fullName': name})
+           # Return success response
+           return jsonify({"success": True}), 200
+
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document does not exist for user: " + username}), 404
+        
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_email', methods=['POST'])
+def update_email():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        email = request.json.get('email')
+        
+        # Check if the document exists
+        users_ref = db.collection('users').document(username)
+        profile_data = users_ref.get().to_dict()
+        
+        if profile_data:
+           users_ref.update({'email': email})
+           # Return success response
+           return jsonify({"success": True}), 200
+
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document does not exist for user: " + username}), 404
+        
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_phone_number', methods=['POST'])
+def update_phone_number():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        phoneNumber = request.json.get('phoneNumber')
+        
+        # Check if the document exists
+        users_ref = db.collection('users').document(username)
+        profile_data = users_ref.get().to_dict()
+        
+        if profile_data:
+           users_ref.update({'phoneNumber': phoneNumber})
+           # Return success response
+           return jsonify({"success": True}), 200
+
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document does not exist for user: " + username}), 404
+        
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/update_date_of_birth', methods=['POST'])
+def update_date_of_birth():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        dateOfBirth = request.json.get('dateOfBirth')
+        
+        # Check if the document exists
+        users_ref = db.collection('users').document(username)
+        profile_data = users_ref.get().to_dict()
+        
+        if profile_data:
+           users_ref.update({'dateOfBirth': dateOfBirth})
+           # Return success response
+           return jsonify({"success": True}), 200
+
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document does not exist for user: " + username}), 404
+        
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_emergency_contact', methods=['POST'])
+def update_emergency_contact():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        emergencyContact = request.json.get('emergencyContact')
+        
+        # Check if the document exists
+        users_ref = db.collection('users').document(username)
+        profile_data = users_ref.get().to_dict()
+        
+        if profile_data:
+           users_ref.update({'emergencyContact': emergencyContact})
+           # Return success response
+           return jsonify({"success": True}), 200
+
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document does not exist for user: " + username}), 404
+        
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/get_profile_data/<username>', methods=['GET'])
+def get_profile_data(username):
+    try:
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+
+        # Get the user document data
+        user_doc = user_ref.get()
+
+        # Check if the document exists
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            return jsonify({"success": True, "data": user_data}), 200  # Set success to True and include data
+        else:
+            return jsonify({"success": False, "message": "User not found"}), 404
+
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_view_activity', methods=['POST'])
+def update_view_activity():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        value = request.json.get('value')
+        # Check if the document exists
+        users_ref = db.collection('users').document(username)
+        profile_data = users_ref.get().to_dict()
+        if profile_data:
+           users_ref.update({'view_activity': value})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document does not exist for user: " + username}), 404
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/get_view_activity/<username>', methods=['GET'])
+def get_view_activity(username):
+    try:
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+        # Get the user document data
+        user_doc = user_ref.get()
+        # Check if the document exists
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            return jsonify({"success": True, "view_activity": user_data['view_activity']}), 200  # Set success to True and include data
+        else:
+            return jsonify({"success": False, "message": "User not found"}), 404
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_view_meals', methods=['POST'])
+def update_view_meals():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        value = request.json.get('value')
+        # Check if the document exists
+        users_ref = db.collection('users').document(username)
+        profile_data = users_ref.get().to_dict()
+        if profile_data:
+           users_ref.update({'view_meals': value})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document does not exist for user: " + username}), 404
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/get_view_meals/<username>', methods=['GET'])
+def get_view_meals(username):
+    try:
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+        # Get the user document data
+        user_doc = user_ref.get()
+        # Check if the document exists
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            return jsonify({"success": True, "view_meals": user_data['view_meals']}), 200  # Set success to True and include data
+        else:
+            return jsonify({"success": False, "message": "User not found"}), 404
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_view_feedback', methods=['POST'])
+def update_view_feedback():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        value = request.json.get('value')
+        # Check if the document exists
+        users_ref = db.collection('users').document(username)
+        profile_data = users_ref.get().to_dict()
+        if profile_data:
+           users_ref.update({'view_feedback': value})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document does not exist for user: " + username}), 404
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/get_view_feedback/<username>', methods=['GET'])
+def get_view_feedback(username):
+    try:
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+        # Get the user document data
+        user_doc = user_ref.get()
+        # Check if the document exists
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            return jsonify({"success": True, "view_feedback": user_data['view_feedback']}), 200  # Set success to True and include data
+        else:
+            return jsonify({"success": False, "message": "User not found"}), 404
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/update_notifications', methods=['POST'])
+def update_notifications():
+    try:
+        # Parse the request data
+        username = request.json.get('username')
+        value = request.json.get('value')
+        # Check if the document exists
+        users_ref = db.collection('users').document(username)
+        profile_data = users_ref.get().to_dict()
+        if profile_data:
+           users_ref.update({'notifications': value})
+           # Return success response
+           return jsonify({"success": True}), 200
+        else:
+            # Document doesn't exist, return error response
+            return jsonify({"success": False, "message": "Document does not exist for user: " + username}), 404
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/get_notifications/<username>', methods=['GET'])
+def get_notifications(username):
+    try:
+        # Reference to the Firestore document of the user
+        user_ref = db.collection('users').document(username)
+        # Get the user document data
+        user_doc = user_ref.get()
+        # Check if the document exists
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            return jsonify({"success": True, "notifications": user_data['notifications']}), 200  # Set success to True and include data
+        else:
+            return jsonify({"success": False, "message": "User not found"}), 404
+    except Exception as e:
+        # Handle exceptions
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+
+    
 
 """Helper Methods"""
 
@@ -692,5 +1409,8 @@ def get_one_conversation(username, index):
     # Return None or an empty array if the document does not exist
     return None
 
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # app.run(debug=True)
+    app.run(host='0.0.0.0', port=5002)
